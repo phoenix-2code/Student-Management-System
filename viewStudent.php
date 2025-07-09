@@ -5,19 +5,18 @@ if (!isset($_SESSION['admin_logged_in'])) {
   exit();
 }
 
-if (!session_id()) session_start();
 require_once 'includes/db.php';
 
-//  Pagination settings
+// Pagination settings
 $limit  = 10;
 $page   = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
-//  Search logic
+// Search logic
 $search       = trim($_GET['search'] ?? '');
 $searchQuery  = "%$search%";
 
-//  Count total matches (for pagination)
+// Count total matches
 $countStmt = $conn->prepare("SELECT COUNT(*) AS total FROM studentRecords WHERE fullName LIKE ?");
 $countStmt->bind_param("s", $searchQuery);
 $countStmt->execute();
@@ -25,7 +24,7 @@ $totalResult = $countStmt->get_result()->fetch_assoc();
 $totalPages  = ceil($totalResult['total'] / $limit);
 $countStmt->close();
 
-//  Fetch student data (paginated)
+// Fetch student data
 $stmt = $conn->prepare("
   SELECT * FROM studentRecords 
   WHERE fullName LIKE ? 
@@ -42,7 +41,6 @@ $stmt->close();
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Student Records</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
@@ -51,8 +49,20 @@ $stmt->close();
 <body>
   <?php include 'includes/header.php'; ?>
 
-  <main class="container mt-5">
-    <!--  Search -->
+  <main class="container mt-4">
+
+    <!-- Feedback Alert -->
+        <?php if (isset($_SESSION['message'])): ?>
+        <div class="alert alert-info alert-dismissible fade show mt-3" role="alert">
+            <i class="bi bi-info-circle-fill"></i>
+            <?= htmlspecialchars($_SESSION['message']) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <?php unset($_SESSION['message']); ?>
+        <?php endif; ?>
+
+
+    <!-- Search -->
     <form method="GET" action="viewStudent.php" class="row g-3 mb-4">
       <div class="col-md-8">
         <input type="text" name="search" class="form-control" placeholder="Search by Full Name..." value="<?= htmlspecialchars($search) ?>" />
@@ -65,16 +75,17 @@ $stmt->close();
       </div>
     </form>
 
-    <!--  Message -->
-    <?php if (isset($_SESSION['message'])): ?>
-      <div class="alert alert-success alert-dismissible fade show">
-        <?= htmlspecialchars($_SESSION['message']) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-      <?php unset($_SESSION['message']); ?>
-    <?php endif; ?>
+            <?php if (isset($_SESSION['message'])): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <?= htmlspecialchars($_SESSION['message']) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php unset($_SESSION['message']); ?>
+        <?php endif; ?>
 
-    <!--  Table -->
+
+    <!-- Table -->
     <?php if ($students): ?>
       <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
@@ -110,7 +121,7 @@ $stmt->close();
         </table>
       </div>
 
-      <!--  Pagination Controls -->
+      <!-- Pagination -->
       <nav class="mt-4">
         <ul class="pagination justify-content-center">
           <?php for ($i = 1; $i <= $totalPages; $i++): ?>
@@ -126,11 +137,14 @@ $stmt->close();
         No records found <?= $search ? "matching <strong>" . htmlspecialchars($search) . "</strong>" : "" ?>.
       </div>
     <?php endif; ?>
+
   </main>
+  
 
   <?php include 'includes/footer.php'; ?>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
 
 
